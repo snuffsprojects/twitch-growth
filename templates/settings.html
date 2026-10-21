@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0e1110">
+  <title>Settings · Twitch Growth</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=10">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ app_prefix }}/"><span class="brand-mark">TG</span><span><strong>Twitch Growth</strong><small>Settings</small></span></a>
+    <div class="top-actions">
+      <a class="back-link" href="{{ app_prefix }}/">← Dashboard</a>
+      <form method="post" action="{{ app_prefix }}/logout"><input type="hidden" name="_csrf_token" value="{{ csrf_token }}"><button class="back-link link-button" type="submit">Sign out</button></form>
+    </div>
+  </header>
+  <main class="settings-page">
+    <section class="hero settings-hero"><div><p class="eyebrow">Server-side configuration</p><h1>Settings</h1><p class="hero-copy">Secrets are write-only and never returned to the browser.</p></div></section>
+    {% if message %}<p class="form-alert success" role="status">{{ message }}</p>{% endif %}
+    {% if error %}<p class="form-alert error" role="alert">{{ error }}</p>{% endif %}
+    <form method="post" class="settings-form panel">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+      <section><p class="eyebrow">Twitch</p><h2>Application connection</h2>
+        <div class="settings-grid">
+          <label>Client ID<input name="twitch_client_id" value="{{ values.twitch_client_id }}" {% if values.twitch_client_id_from_environment %}disabled{% endif %}><small>{% if values.twitch_client_id_from_environment %}Provided by the environment and cannot be changed here.{% else %}From the Twitch Developer Console.{% endif %}</small></label>
+          <label>Client secret<input name="twitch_client_secret" type="password" autocomplete="new-password" placeholder="{% if values.twitch_secret_configured %}Configured — leave blank to keep{% else %}Optional for device authorization{% endif %}"></label>
+          <label class="wide">Default channel URL<input name="channel_url" type="url" value="{{ values.channel_url }}" placeholder="https://www.twitch.tv/your_channel"></label>
+        </div>
+      </section>
+      <section><p class="eyebrow">Steam Game Finder</p><h2>Library connection</h2>
+        <div class="settings-grid">
+          <label>Steam ID64<input name="steam_id64" inputmode="numeric" maxlength="17" value="{{ values.steam_id64 }}"></label>
+          <label>Steam Web API key<input name="steam_api_key" type="password" autocomplete="new-password" placeholder="{% if values.steam_key_configured %}Configured — leave blank to keep{% else %}32 hexadecimal characters{% endif %}"></label>
+        </div>
+      </section>
+      <section><p class="eyebrow">Regional and deployment</p><h2>Application behaviour</h2>
+        <div class="settings-grid">
+          <label>Timezone<input name="timezone" value="{{ values.timezone }}" placeholder="Europe/London"><small>Use an IANA timezone name.</small></label>
+          <label>Route prefix<input value="{{ values.prefix }}" disabled><small>Set with TWITCH_GROWTH_PREFIX and restart.</small></label>
+          <label class="wide">Database<input value="{{ values.database }}" disabled></label>
+        </div>
+      </section>
+      <button type="submit">Save settings</button>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0e1110">
+  <title>Twitch Growth · Stream intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=8">
+  <link rel="stylesheet" href="{{ url_for('static', filename='phase.css') }}?v=1">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to dashboard</a>
+  <header class="topbar">
+    <a class="brand" href="{{ dashboard_url }}">
+      <span class="brand-mark">TG</span>
+      <span><strong>Twitch Growth</strong><small>Stream intelligence</small></span>
+    </a>
+    <div class="top-actions">
+      <span class="connection" id="connection"><i></i><span>Checking connection</span></span>
+      <a class="back-link game-finder-link" href="{{ app_prefix }}/game-finder">What should I stream?</a>
+      {% if admin_enabled %}<a class="back-link" href="{{ app_prefix }}/settings">Settings</a>{% endif %}
+      <a class="back-link" href="{{ dashboard_url }}">← Dashboard 2</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Audience growth workspace</p>
+        <h1>Turn every stream into a useful signal.</h1>
+        <p class="hero-copy">See what earns attention, starts conversations and brings people back.</p>
+      </div>
+      <div class="live-chip" id="live-chip"><span></span> Offline</div>
+    </section>
+
+    <section class="setup-panel" id="setup-panel" hidden>
+      <div class="setup-icon" aria-hidden="true">↗</div>
+      <div>
+        <p class="eyebrow">One connection away</p>
+        <h2>Connect your Twitch channel</h2>
+        <p>The dashboard is ready. It needs a Twitch application and your broadcaster authorization before it can begin recording real metrics.</p>
+      </div>
+      <div class="setup-checklist" id="setup-checklist"></div>
+      <button class="connect-button" id="connect-button" type="button">Authorise with Twitch</button>
+      <div class="device-flow" id="device-flow" hidden>
+        <span>Enter this code on Twitch</span>
+        <strong id="device-code">—</strong>
+        <a id="device-link" href="https://www.twitch.tv/activate" target="_blank" rel="noopener noreferrer">Open Twitch activation ↗</a>
+        <small id="device-status">Waiting for approval…</small>
+      </div>
+    </section>
+
+    <section class="metric-grid" aria-label="Growth summary">
+      <article class="metric-card featured"><span>Average viewers</span><strong id="average-viewers">—</strong><small>Raid-adjusted baseline: <b id="baseline-viewers">—</b></small></article>
+      <article class="metric-card"><span>Best peak</span><strong id="best-peak">—</strong><small>Concurrent viewers</small></article>
+      <article class="metric-card"><span>New followers</span><strong id="followers">—</strong><small>Since tracking began</small></article>
+      <article class="metric-card"><span>Active chatters</span><strong id="chatters">—</strong><small>Unique community voices</small></article>
+      <article class="metric-card"><span>Viewer hours</span><strong id="viewer-hours">—</strong><small>Estimated from samples</small></article>
+      <article class="metric-card"><span>Streams tracked</span><strong id="streams">—</strong><small>Completed broadcasts</small></article>
+    </section>
+
+    <section class="export-panel" aria-labelledby="export-title">
+      <div class="export-copy">
+        <span class="export-icon" aria-hidden="true">AI</span>
+        <div><p class="eyebrow">Portable analysis</p><h2 id="export-title">Take your metrics to any AI assistant</h2><p>Download a self-explaining report for ChatGPT, Claude, Gemini, or another desktop client. Nothing is sent anywhere until you upload it.</p></div>
+      </div>
+      <div class="export-actions">
+        <a class="export-button primary" href="{{ url_for('export_ai_report') }}" download>Download AI report <small>.md</small></a>
+        <a class="export-button" href="{{ url_for('export_json_data') }}" download>Download raw data <small>.json</small></a>
+      </div>
+    </section>
+
+    <section class="panel schedule-panel" aria-labelledby="schedule-title">
+      <div class="panel-heading schedule-heading">
+        <div><p class="eyebrow">Observed timing</p><h2 id="schedule-title">When your streams find an audience</h2><p class="panel-intro">Raid-adjusted average viewers by local start window. Colour strength grows with repeat evidence; each cell shows its sample size.</p></div>
+        <div class="schedule-recommendations"><div><span>Best observed start</span><strong id="best-start">Building evidence</strong><small id="best-start-note">Three streams in a window unlock a recommendation.</small></div><div><span>Strongest finish</span><strong id="best-finish">Building evidence</strong><small id="best-finish-note">Based on closing 30-minute audience momentum.</small></div></div>
+      </div>
+      <div class="heatmap-wrap" id="schedule-heatmap"><div class="empty-mini">Your weekly pattern will form as completed streams accumulate.</div></div>
+      <div class="heatmap-key"><span>Less evidence</span><i></i><i></i><i></i><i></i><i></i><span>More evidence</span><b>Metric: raid-adjusted viewers</b></div>
+    </section>
+
+    <div class="dashboard-grid">
+      <div class="primary-column">
+        <section class="panel chart-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">Latest stream</p><h2>Audience pulse</h2></div>
+            <div class="chart-tools"><div class="chart-legend"><i></i> Concurrent viewers</div><button id="add-marker" class="small-button" type="button">+ Marker</button></div>
+          </div>
+          <div class="chart" id="viewer-chart"><div class="empty-mini">Viewer samples will appear here during your next stream.</div></div>
+          <div class="campaign-strip" id="campaign-strip" aria-label="Campaign clicks during the latest stream"></div>
+          <form class="marker-form" id="marker-form" hidden>
+            <select id="marker-type"><option value="note">Note</option><option value="segment">New segment</option><option value="brb">BRB</option><option value="gameplay">Gameplay event</option><option value="technical">Technical issue</option><option value="highlight">Highlight</option></select>
+            <input id="marker-label" maxlength="160" placeholder="What just happened?" required>
+            <button type="submit">Save marker</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">Stream-by-stream</p><h2>What moved the needle?</h2></div>
+            <span class="count-pill" id="stream-count">0 streams</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Broadcast</th><th>Average</th><th>Baseline</th><th>Peak</th><th>Chatters</th><th>Follows</th></tr></thead>
+              <tbody id="stream-table"><tr><td colspan="6" class="empty-row">No broadcasts recorded yet.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel insight-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Growth diagnostics</p><h2>Signals worth repeating</h2><p class="panel-intro">Observed associations, not guarantees. Every result retains its sample count.</p></div></div>
+          <div class="insight-grid">
+            <article><h3>Category switch retention</h3><div id="transition-insights" class="rank-list"><p class="empty-mini">Category changes will be compared after enough viewer samples.</p></div></article>
+            <article><h3>Raid audience affinity</h3><div id="affinity-insights" class="rank-list"><p class="empty-mini">Incoming raids will be compared by retained audience and follow conversion.</p></div></article>
+            <article><h3>Chatter intensity</h3><div id="chatter-insights" class="rank-list"><p class="empty-mini">Messages per minute per average viewer will appear here.</p></div></article>
+            <article><h3>Energy and performance</h3><div id="energy-insights" class="rank-list"><p class="empty-mini">Add an energy score to stream journals to reveal correlations.</p></div></article>
+          </div>
+        </section>
+
+        <section class="panel campaign-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Off-platform funnel</p><h2>Campaign links</h2><p class="panel-intro">Create self-hosted redirect links. Clicks are associated by time—not identified as individual Twitch viewers.</p></div><span class="count-pill" id="campaign-count">0 links</span></div>
+          <form id="campaign-form" class="campaign-form">
+            <label>Short name<input id="campaign-slug" required maxlength="48" placeholder="yt-guide"></label><label>Platform<select id="campaign-platform"><option value="youtube">YouTube</option><option value="tiktok">TikTok</option><option value="discord">Discord</option><option value="x">X</option><option value="other">Other</option></select></label><label>Campaign<input id="campaign-name" required maxlength="120" placeholder="Weekly schedule post"></label><label>Destination<input id="campaign-target" type="url" placeholder="https://www.twitch.tv/your_channel" required></label><button type="submit">Create link</button>
+          </form>
+          <p class="campaign-warning">Currently intranet-only. Do not publish these links until a dedicated public redirect hostname is configured.</p>
+          <div id="campaign-list" class="campaign-list"><p class="empty-mini">No campaign links have been created.</p></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Content strategy</p><h2>Performance by category</h2></div></div>
+          <div class="category-list" id="category-list"><div class="empty-mini">Category comparisons begin after your first completed streams.</div></div>
+        </section>
+
+        <section class="panel journal-panel">
+          <div class="panel-heading"><div><p class="eyebrow">After the stream</p><h2>Stream journal</h2></div><span id="notes-status" class="subtle-status"></span></div>
+          <form id="notes-form" class="notes-form">
+            <label class="wide">Summary<textarea id="note-summary" placeholder="What did you stream and what was different about this session?"></textarea></label>
+            <label>Promotion<textarea id="note-promotion" placeholder="Where and when did you promote it?"></textarea></label>
+            <label>Promotion time<input id="note-promotion-at" type="datetime-local"></label>
+            <label>Discord promoted<select id="note-discord-promoted"><option value="">Not recorded</option><option value="1">Yes</option><option value="0">No</option></select></label>
+            <label>Instagram promoted<select id="note-instagram-promoted"><option value="">Not recorded</option><option value="1">Yes</option><option value="0">No</option></select></label>
+            <label>Threads promoted<select id="note-threads-promoted"><option value="">Not recorded</option><option value="1">Yes</option><option value="0">No</option></select></label>
+            <label>Stream plan<select id="note-stream-plan"><option value="">Not recorded</option><option value="planned">Planned</option><option value="spontaneous">Spontaneous</option></select></label>
+            <label>Special event<input id="note-special-event" maxlength="160" placeholder="Optional event type or name"></label>
+            <label class="wide">Guests<input id="note-guests" maxlength="500" placeholder="Optional names, separated by commas"></label>
+            <label>What worked<textarea id="note-well" placeholder="Segments, interactions or decisions that landed well"></textarea></label>
+            <label>What to improve<textarea id="note-improve" placeholder="Drop-offs, technical issues or weaker moments"></textarea></label>
+            <label>Next experiment<textarea id="note-next" placeholder="One specific thing to test next stream"></textarea></label>
+            <label class="energy-label">Energy level<select id="note-energy"><option value="">Not recorded</option><option value="1">1 · Very low</option><option value="2">2 · Low</option><option value="3">3 · Steady</option><option value="4">4 · Good</option><option value="5">5 · Excellent</option></select></label>
+            <button class="save-notes" type="submit">Save stream notes</button>
+          </form>
+          <p id="notes-empty" class="empty-mini">A stream record is needed before notes can be saved.</p>
+        </section>
+      </div>
+
+      <aside class="side-column">
+        <section class="panel signal-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Community signals</p><h2>Engagement mix</h2></div></div>
+          <div class="signal-list" id="signal-list"></div>
+          <div class="empty-mini" id="signal-empty">Follows, subscriptions, raids, cheers and redemptions will collect here.</div>
+        </section>
+
+        <section class="panel coaching-panel">
+          <p class="eyebrow">Growth coach</p>
+          <h2>Your next best move</h2>
+          <div class="coach-card" id="coach-card">
+            <span class="coach-number">01</span>
+            <div><strong>Build the baseline</strong><p>Connect Twitch and track three streams before drawing conclusions. Consistent data beats one exceptional night.</p></div>
+          </div>
+        </section>
+
+        <section class="panel clips-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Discovery assets</p><h2>Top clips</h2></div></div>
+          <div id="clip-list" class="clip-list"><div class="empty-mini">Your most-watched clips will appear here.</div></div>
+        </section>
+
+        <section class="panel raid-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Raid quality</p><h2>Retention after raids</h2></div></div>
+          <div id="raid-list" class="raid-list"><div class="empty-mini">Incoming raids and their 5, 15 and 30-minute retention will appear here.</div></div>
+        </section>
+
+        <section class="panel data-note">
+          <p class="eyebrow">Designed for honest data</p>
+          <h2>What we calculate</h2>
+          <p>Viewer averages, estimated viewer-hours and retention come from frequent snapshots. Twitch events supply follows, chat, subscriptions, raids and rewards.</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <script>window.TWITCH_GROWTH={{ {"base": app_prefix, "csrf": csrf_token}|tojson }};</script>
+  <script src="{{ url_for('static', filename='security.js') }}?v=1"></script>
+  <script src="{{ url_for('static', filename='app.js') }}?v=9"></script>
+</body>
+</html>

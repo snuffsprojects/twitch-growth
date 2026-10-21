@@ -1,0 +1,416 @@
+TWITCH GROWTH DASHBOARD - HOW IT WORKS
+======================================
+
+Last updated: 21 September 2026
+Tracked channel: the Twitch account connected during authorization
+
+
+1. SHORT ANSWER
+---------------
+
+Yes. Tracking starts automatically when the channel goes live. You do not need
+to open the dashboard or press a start button.
+
+A background service maintains a Twitch EventSub WebSocket for immediate stream
+and community events. It also checks current viewer count approximately once per
+minute because Twitch does not emit viewer-count events. When Twitch reports
+that the connected channel is live, the collector creates or resumes a record and begins
+saving viewer snapshots.
+
+The dashboard website and the collector are separate:
+
+* The dashboard displays data already stored in the database.
+* The collector runs continuously, even if nobody has the website open.
+
+
+2. WHAT RUNS CONTINUOUSLY
+-------------------------
+
+The systemd service "twitch-growth-collector.service" starts with the Pi and
+restarts automatically after a failure. Its normal loop is:
+
+1. Maintain EventSub subscriptions for stream and community events.
+2. Ask Twitch whether the connected channel is currently live.
+3. If live, store a viewer, title, category and tag snapshot.
+4. If offline, begin a three-minute disconnect grace period before closing the
+   stream record.
+5. Refresh clip metadata and view counts hourly.
+6. Save the time of the successful check.
+7. Wait approximately 60 seconds and repeat the snapshot cycle.
+
+Opening or closing the dashboard has no effect on this loop.
+
+
+3. WHEN A STREAM STARTS
+-----------------------
+
+On the first successful check after Twitch reports the channel as live, the
+collector saves:
+
+* Twitch's unique stream ID
+* Stream title
+* Category/game ID and name
+* Twitch's official stream start time
+* Current concurrent viewer count
+* Time of the viewer snapshot
+* Current Twitch tags as a JSON array
+
+The Twitch stream ID prevents repeated checks from creating duplicate streams.
+If the title or category changes while live, the main stream record is updated
+and each viewer snapshot also preserves the title and category seen at that
+moment.
+
+Title, category and tag changes create timed stream segments and automatic
+timeline markers, allowing portions of the same broadcast to be compared.
+
+EventSub normally triggers an immediate Twitch status check when Twitch marks
+the channel live. The one-minute polling loop remains a fallback, so detection
+should still occur within roughly one polling interval if an EventSub message is
+late or the WebSocket is reconnecting.
+
+
+4. WHILE A STREAM IS LIVE
+-------------------------
+
+Approximately once per minute, the collector records the current concurrent
+viewer count. After every snapshot it recalculates:
+
+AVERAGE VIEWERS
+    The arithmetic mean of all locally recorded viewer snapshots for that
+    stream. This is a local estimate and may differ slightly from Twitch's
+    official Creator Dashboard average.
+
+PEAK VIEWERS
+    The highest concurrent-viewer snapshot recorded locally.
+
+VIEWER MINUTES / VIEWER HOURS
+    Viewer count multiplied by the time between samples. The dashboard converts
+    total viewer minutes into estimated viewer hours. Gaps longer than five
+    minutes are capped so a network outage cannot wildly inflate the figure.
+
+SAMPLE COUNT
+    The number of usable viewer snapshots stored for the stream.
+
+BASELINE AVERAGE
+    The average of samples outside the 30-minute window following an incoming
+    raid. Raw viewer counts remain intact; this is a comparison measure rather
+    than a claim that individual viewers are organic.
+
+AUDIENCE PULSE CHART
+    The latest stream's snapshots are plotted in time order. This shows when the
+    audience grew, held steady or dropped during a broadcast.
+
+
+5. WHEN A STREAM ENDS
+---------------------
+
+On the first check where Twitch reports the channel offline, the collector
+starts a three-minute grace period. If the channel returns during that period,
+the same local broadcast continues and a reconnect marker is added. This avoids
+splitting a broadcast because OBS or the connection briefly dropped.
+
+If the channel remains offline for the full grace period, the collector:
+
+* Sets the stream end time to the beginning of the confirmed offline period.
+* Performs a final calculation of average viewers, peak viewers and viewer-hours.
+* Leaves the completed record permanently available for comparisons.
+
+EventSub normally begins this check immediately; polling remains a fallback.
+
+
+6. WHAT THE DASHBOARD CURRENTLY DISPLAYS
+----------------------------------------
+
+SUMMARY CARDS
+
+Average viewers
+    Average of the locally calculated averages for completed streams. Useful for
+    seeing whether the typical size of the audience is rising over time.
+
+Best peak
+    Highest peak across completed streams. Useful as a milestone, but it should
+    be interpreted alongside averages because a short raid can create a peak.
+
+New followers
+    Captured immediately through Twitch EventSub.
+
+Active chatters
+    Unique authenticated chatters captured through Twitch EventSub.
+
+Viewer hours
+    Total estimated viewer-hours accumulated across completed streams. This is
+    more useful than stream duration alone because it combines audience size and
+    time watched.
+
+Streams tracked
+    Number of completed broadcasts recorded since this collector was enabled.
+
+STREAM-BY-STREAM TABLE
+
+Shows recent broadcasts with their title, category, date, approximate duration,
+average viewers, peak viewers, active chatters and followers. Viewer figures and
+duration, chatters and follower conversions recorded for that stream.
+
+PERFORMANCE BY CATEGORY
+
+Compares completed streams by category, including average viewers, best peak,
+viewer-hours and number of streams. This helps answer whether particular games
+or stream formats consistently attract and retain a larger audience.
+
+The summary groups a stream under its most recently observed category. Detailed
+stream segments preserve timed title, category and tag changes for deeper
+analysis and annotated timeline comparisons.
+
+TOP CLIPS
+
+The collector refreshes up to 100 clips returned by Twitch and stores their
+title, creator, creation time, URL and current view count. The dashboard shows
+the six highest-viewed stored clips. This helps identify moments and subjects
+that people found worth sharing.
+
+COMMUNITY SIGNALS
+
+EventSub records follows, subscriptions, cheers, raids, Channel Point
+redemptions, polls, predictions, Hype Trains and chat activity in real time.
+Incoming raid samples are flagged for 30 minutes and shown with before, +5,
++15 and +30-minute viewer measurements.
+
+WEEKLY TIMING MAP AND GROWTH DIAGNOSTICS
+
+The weekly heat map groups stream starts into three-hour Europe/London local-time
+windows. A cell shows raid-adjusted average viewers and its number of completed streams.
+One observation appears faintly; repeated observations progressively strengthen
+the evidence. The site does not name a "best" start or finish window until that
+same window contains at least three completed streams.
+
+The diagnostics also calculate category-change retention over the 15 minutes
+before and after a switch; final-30-minute audience momentum compared with the
+preceding 30 minutes; chat messages per minute per average viewer; raid-source
+affinity using estimated incremental viewers at +30 minutes and follows within
+30 minutes; and viewer/engagement patterns by journal energy score. These are
+observed associations rather than promises of future performance.
+
+If an exact weekday/time cell has fewer than three streams, the schedule coach
+does not lower its evidence threshold. It falls back first to the same three-hour
+clock window across all days, then to weekday/weekend morning, afternoon,
+evening or night bands. The dashboard labels this as broader evidence.
+
+CAMPAIGN LINKS
+
+The private dashboard can create named redirect links for YouTube, TikTok,
+Discord, X or another campaign. A redirect records its campaign slug, UTC time,
+active stream (if any) and only a coarse mobile/desktop/unknown device class. It
+does not store an IP address, full user-agent string or Twitch viewer identity.
+Known social-preview bots and repeated clicks from the same in-memory source
+within 30 seconds are excluded. Individual click rows are pruned after 90 days;
+five-minute aggregates remain for long-term comparisons and appear as a small
+bar strip below Audience Pulse.
+
+Campaign clicks and subsequent Twitch activity are time associations, not
+person-level attribution. The system must say that clicks were followed by chat
+or follow events, never that a particular click caused them.
+
+Campaign redirects currently use the private intranet route. They must not be
+published off-platform until a dedicated public redirect hostname or narrowly
+scoped tunnel route is deliberately configured. The private dashboard must not
+be exposed as part of that change.
+
+EVIDENCE-GATED COACHING
+
+The Growth Coach evaluates versioned deterministic rules rather than asking an
+AI to interpret raw tables. A recommendation records its rule/version, evidence
+key, observation, sample size, confidence, caveats, experiment and re-evaluation
+target. Category-transition and finishing-momentum rules require at least three
+comparable observations. Advice remains absent when evidence is insufficient.
+
+
+7. HOW THIS CAN ASSIST CHANNEL GROWTH
+-------------------------------------
+
+The dashboard is intended to support repeated comparisons, not to judge a
+single broadcast in isolation.
+
+SCHEDULING
+    Compare streams over time to discover which days, start times and durations
+    are associated with stronger averages and viewer-hours.
+
+CONTENT CHOICE
+    Compare categories and stream titles to identify games or formats that
+    attract viewers consistently, rather than relying on one unusually large
+    peak.
+
+RETENTION
+    Use the audience pulse graph to locate recurring growth and drop-off points.
+    Stream notes or markers can later be aligned with these points to understand
+    what was happening on stream.
+
+DISCOVERY
+    Compare clip topics and views to see which moments travel beyond the live
+    audience and may be worth turning into social posts or recurring segments.
+
+CONVERSION
+    EventSub enables follows per stream, follows per streaming hour and raid
+    retention, showing whether increased exposure becomes lasting growth.
+
+COMMUNITY HEALTH
+    EventSub chat tracking supplies unique chatters, message velocity and
+    first-message participation to help distinguish an engaged audience from
+    passive or temporary traffic.
+
+DECISION QUALITY
+    Several streams should be collected before changing strategy. A minimum of
+    three comparable streams provides a baseline; more is better. Raids, special
+    events and unusual stream lengths should be treated as context, not ignored.
+
+
+8. DATA STORAGE, AUTHENTICATION AND RELIABILITY
+-----------------------------------------------
+
+Data is stored locally in:
+
+    the path configured by TWITCH_GROWTH_DB (or twitch_growth.db in the project directory)
+
+The database contains stream summaries, viewer snapshots, five-minute chat
+aggregates, clip metadata, settings and community events. Raw chat metadata
+(never message text) is retained for 90 days, then pruned daily; durable bucket
+and per-stream summaries remain available for long-term comparisons. The same
+daily maintenance pass runs SQLite's lightweight PRAGMA optimize command after
+pruning so query-planner statistics and internal B-tree maintenance stay current
+without the long write lock or temporary free-space requirement of a full
+VACUUM.
+
+The Twitch access and refresh tokens are stored server-side in this database.
+They are never included in dashboard API responses or browser JavaScript. nginx
+is configured to deny direct web access to database files.
+
+The Twitch Client ID and Client Secret are stored in the root-managed service
+environment file /etc/default/twitch-growth. They are loaded by systemd and are
+not returned by the dashboard API. The Client Secret is required for automatic
+refresh-token exchange and must be treated like a password.
+
+If Twitch returns HTTP 401 because the access token has expired, the collector
+uses the stored refresh token and Client Secret to obtain a replacement and
+retries once. A process-level threading lock prevents the polling and EventSub
+threads from rotating the token simultaneously. Lock acquisition times out after
+10 seconds; a waiting thread then accepts a token already refreshed by its peer,
+or reports a retryable error instead of blocking indefinitely. If authorization
+is revoked or cannot be refreshed, collection logs an error and keeps retrying.
+Reauthorizing through the dashboard restores it.
+
+If the Pi or internet connection is unavailable, no viewer snapshots can be
+reconstructed for that period. Existing stored history is retained. When the
+collector returns, it resumes checking automatically.
+
+When Twitch requests an EventSub session reconnect, the collector opens and
+welcomes the replacement WebSocket before closing the old connection. Twitch
+transfers the subscriptions to that replacement, avoiding a deliberate gap or
+duplicate subscription set.
+
+The Twitch Growth database is included in the daily Pi secondary backup set.
+The job uses SQLite's online backup API, runs integrity and foreign-key checks,
+creates a local archive, then checksum-verifies its copy on the network share.
+
+
+9. EVENTSUB, MARKERS AND RAID ANALYSIS
+-------------------------------------
+
+The collector maintains a Twitch EventSub WebSocket and subscribes to:
+
+* New follows
+* Chat messages and unique chatters
+* First-time and returning chatters
+* New subscriptions, resub messages and gift subscriptions
+* Cheers and Bits
+* Incoming and outgoing raids
+* Channel Point redemptions
+* Poll and prediction activity
+* Hype Train activity
+
+The stored data provides the basis for metrics including:
+
+* Follows per streaming hour or per 100 viewer-hours
+* Chat participation and new-versus-returning chatter ratios
+* Raid retention after 5, 15 and 30 minutes
+* Subscription and cheer activity by stream segment
+* Engagement spikes around rewards, polls and predictions
+* Repeat attendance and community retention
+
+The current dashboard calculates and displays chatter intensity,
+category-switch retention, raid affinity, energy correlations, weekly
+start-time performance and finishing momentum. The other items above describe
+analyses supported by the stored event data but not yet displayed as dedicated
+dashboard statistics. Current diagnostic results include sample sizes, and
+schedule recommendations are withheld until a three-stream minimum is reached.
+
+The Audience Pulse chart accepts manual markers such as BRB, game switches,
+boss attempts, highlights and technical problems. Metadata changes and major
+EventSub events create automatic markers. A tokenized HTTP hook is also
+available for Streamer.bot or Stream Deck integrations.
+
+After each stream, the Stream Journal stores promotion notes, what worked, what
+needs improvement, an energy score and the next experiment to try. This context
+helps prevent one-off raids or unusual streams from misleading later analysis.
+
+
+10. HISTORICAL COVERAGE AND LIMITATIONS
+---------------------------------------
+
+* Viewer tracking begins from the first live broadcast after the collector was
+  enabled. Twitch does not provide old minute-by-minute viewer histories through
+  the normal API, so earlier streams cannot be reconstructed accurately.
+* Existing clips can be imported and their public view counts refreshed.
+* Locally calculated averages and viewer-hours are estimates, not Twitch's
+  official analytics figures.
+* The one-minute interval can miss very short spikes between samples.
+* Twitch Creator Dashboard metrics such as authoritative unique viewers,
+  impressions, discovery sources, geography, device breakdown and revenue are
+  not exposed through the ordinary broadcaster API used here.
+* The current "Offline" badge describes broadcast state. It does not mean the
+  Twitch account is disconnected.
+
+
+11. NORMAL OPERATION CHECKLIST
+------------------------------
+
+Before a stream
+    Nothing is required. Make sure the Pi and its internet connection are on.
+
+Going live
+    Twitch reports the channel live and the collector notices automatically.
+
+During the stream
+    Viewer snapshots and clip metadata are collected in the background. The
+    dashboard may be opened at any time but does not need to remain open.
+
+After the stream
+    The collector starts a three-minute grace period when Twitch reports the
+    channel offline. If it remains offline, the record closes on the next check
+    after that grace period—normally about three to four minutes after detection.
+    The stored end time is the beginning of the confirmed offline period.
+
+If the dashboard says disconnected
+    Use "Authorise with Twitch" again. The existing historical database remains
+    intact.
+
+If the dashboard says offline
+    This is normal whenever the channel is not broadcasting.
+
+
+12. CURRENT STATUS
+------------------
+
+At the time this document was written:
+
+* Twitch identity: the account connected during authorization
+* Dashboard service: installed and enabled
+* Collector service: installed, enabled, using EventSub and checking CCV once per minute
+* Automatic live viewer tracking: active
+* Clip metadata refresh: active hourly
+* Automatic token refresh: implemented
+* Client Secret for automatic refresh: configured
+* EventSub community-event tracking: active with 18 subscriptions
+* Tags and timed metadata segments: active
+* Raid-aware baseline and retention tracking: active
+* Manual and automatic timeline markers: active
+* Stream journal: active
+* Verified secondary backup coverage: active

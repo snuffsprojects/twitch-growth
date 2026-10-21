@@ -1,0 +1,17 @@
+[Unit]
+Description=Twitch Growth live metrics collector
+After=network-online.target twitch-growth.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=twitch-growth
+Group=twitch-growth
+WorkingDirectory=/opt/twitch-growth
+EnvironmentFile=/etc/twitch-growth.env
+ExecStart=/opt/twitch-growth/.venv/bin/python /opt/twitch-growth/collector.py --loop
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

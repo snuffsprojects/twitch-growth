@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0e1110">
+  <title>What should I stream? · Twitch Growth</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to recommendations</a>
+  <header class="topbar">
+    <a class="brand" href="{{ app_prefix }}/"><span class="brand-mark">GF</span><span><strong>Game Finder</strong><small>Steam × Twitch</small></span></a>
+    <div class="top-actions"><a class="back-link" href="{{ app_prefix }}/">← Twitch Growth</a><a class="back-link" href="{{ dashboard_url }}">Dashboard 2</a></div>
+  </header>
+  <main id="main" class="game-finder-page">
+    <section class="hero game-finder-hero"><div><p class="eyebrow">Your library, ranked</p><h1>What should I stream?</h1><p class="hero-copy">Find the games you own with the best balance of live audience, manageable competition and evidence from your own channel.</p></div></section>
+    <section class="panel game-finder-panel" aria-labelledby="game-finder-title">
+      <div class="panel-heading game-finder-heading">
+        <div><p class="eyebrow">Current opportunity</p><h2 id="game-finder-title">Recommendations</h2><p class="panel-intro">Ranked using English-language Twitch activity, likely directory visibility, your channel history and Steam familiarity.</p></div>
+        <div class="game-finder-actions"><span class="game-finder-updated" id="game-finder-updated">Not sampled yet</span><button class="small-button" id="game-finder-refresh" type="button">Refresh recommendations</button></div>
+      </div>
+      <form class="game-finder-setup" id="game-finder-setup">
+        <div><strong>Connect your Steam library</strong><p>Your key stays on this server and is never returned to the browser. Steam Game details must be public.</p></div>
+        <label>Steam ID64<input id="steam-id" inputmode="numeric" pattern="[0-9]{17}" maxlength="17" placeholder="17-digit Steam ID" required></label>
+        <label>Steam Web API key<input id="steam-api-key" type="password" pattern="[A-Fa-f0-9]{32}" maxlength="32" placeholder="Leave blank to keep saved key"></label>
+        <button type="submit">Save connection</button>
+        <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener noreferrer">Get a Steam API key ↗</a>
+        <p class="game-finder-message" id="game-finder-message" role="status"></p>
+      </form>
+      <div class="game-finder-content" id="game-finder-content" hidden>
+        <div class="game-finder-summary"><span><strong id="finder-owned">0</strong> Steam games</span><span><strong id="finder-matched">0</strong> matched to Twitch</span><span><strong id="finder-sampled">0</strong> sampled now</span><span><strong id="finder-baseline">—</strong> typical viewers</span></div>
+        <div class="top-picks-grid">
+          <section><div class="top-picks-heading"><p class="eyebrow">From your library</p><h3>Your top 5 games</h3></div><div class="top-picks" id="owned-top-five"></div></section>
+          <section><div class="top-picks-heading"><p class="eyebrow">Across Twitch</p><h3>Twitch-wide top 5</h3></div><div class="top-picks" id="twitch-top-five"></div></section>
+        </div>
+        <div class="opportunity-key" aria-label="Opportunity colour key"><span><i class="strong"></i>Strong opportunity</span><span><i class="possible"></i>Worth considering</span><span><i class="difficult"></i>Difficult discovery</span></div>
+        <div class="game-finder-controls"><label><span>Show</span><select id="game-finder-filter"><option value="all">All candidates</option><option value="recent">Recently played</option><option value="proven">Streamed before</option><option value="unplayed">Unplayed on Steam</option><option value="live">Live audience now</option></select></label><label class="game-search"><span>Find a game</span><input id="game-finder-search" type="search" placeholder="Search sampled games…"></label></div>
+        <div class="game-finder-list" id="game-finder-list"></div>
+        <p class="game-finder-caveat">Live opportunity is a snapshot, not a promise. Scores penalise top-channel concentration and show evidence confidence. Categories with over 300 English channels are sampled as a lower bound.</p>
+      </div>
+    </section>
+  </main>
+  <script>window.TWITCH_GROWTH={{ {"base": app_prefix, "csrf": csrf_token}|tojson }};</script>
+  <script src="{{ url_for('static', filename='security.js') }}?v=1"></script>
+  <script src="{{ url_for('static', filename='game-finder.js') }}?v=2"></script>
+</body>
+</html>

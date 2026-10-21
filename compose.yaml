@@ -1,0 +1,29 @@
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:5120:5120"
+    volumes:
+      - twitch-growth-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5120/health', timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 15s
+
+  collector:
+    build: .
+    restart: unless-stopped
+    command: ["python", "collector.py", "--loop"]
+    env_file: .env
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - twitch-growth-data:/data
+
+volumes:
+  twitch-growth-data:

@@ -1,0 +1,17 @@
+[Unit]
+Description=Twitch Growth analytics dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=twitch-growth
+Group=twitch-growth
+WorkingDirectory=/opt/twitch-growth
+EnvironmentFile=/etc/twitch-growth.env
+ExecStart=/opt/twitch-growth/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:5120 --access-logfile - --error-logfile - app:app
+Restart=on-failure
+RestartSec=4
+
+[Install]
+WantedBy=multi-user.target

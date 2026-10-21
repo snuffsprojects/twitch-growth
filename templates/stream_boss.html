@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" data-mode="{{ layout }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>Stream Boss · Twitch Growth</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='stream-boss/stream-boss.css') }}?v=20261015-7">
+</head>
+<body class="{{ 'overlay-mode ' ~ layout ~ '-overlay-mode' if overlay else 'desk-mode' }}">
+  {% if not overlay %}
+  <a class="skip-link" href="#battle-stage">Skip to battle</a>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">SB</span><span><strong>Stream Boss</strong><small>Community battle control</small></span></a>
+    <nav><a href="{{ url_for('streamline_page') }}">The Streamline</a><a href="{{ dashboard_url }}">Dashboard2</a></nav>
+  </header>
+  {% endif %}
+
+  <main>
+    <section class="battle-shell" id="battle-stage" aria-labelledby="boss-name">
+      <div class="battle-header">
+        <div><p class="eyebrow">Service disruption · Community encounter</p><h1 id="boss-name">Awaiting a challenger…</h1></div>
+        <div class="battle-status" id="battle-status"><i></i><span>No active battle</span></div>
+      </div>
+      <div class="battlefield">
+        <div class="effects" id="effects" aria-hidden="true"></div>
+        <div class="boss-sprite idle" id="boss-sprite" role="img" aria-label="The Signal Gremlin"></div>
+        <div class="empty-battle" id="empty-battle"><strong>The line is currently clear.</strong><span>Choose a challenger from the control desk.</span></div>
+        <div class="event-toast" id="event-toast" aria-live="polite"></div>
+      </div>
+      <div class="combat-hud">
+        <div class="hp-block"><div><span>Boss integrity</span><strong id="hp-text">— / —</strong></div><div class="meter hp-meter"><i id="hp-fill"></i></div></div>
+        <div class="charge-block"><div><span>Chat attack charge</span><strong id="charge-text">0%</strong></div><div class="meter charge-meter"><i id="charge-fill"></i></div></div>
+        <div class="phase-block"><span>Signal phase</span><strong id="phase-text">—</strong></div>
+      </div>
+      <p class="battle-rule">Each chatter can add charge once every 20 seconds. At 100%, the whole party attacks.</p>
+      {% if layout == 'full' %}
+      <aside class="viewer-guide" aria-label="How to fight the stream boss">
+        <div class="guide-intro"><p class="eyebrow">Chat joins the fight</p><strong>Send a message to add 12% charge</strong><span>One charge per chatter every 20 seconds · 100% unleashes a 140-damage party attack</span></div>
+        <ul class="hit-guide">
+          <li><b>Follow</b><span>45 damage</span></li>
+          <li><b>Channel points</b><span>80 damage</span></li>
+          <li><b>Subscribe</b><span>180 damage</span></li>
+          <li><b>Gift subs</b><span>240+ damage</span></li>
+          <li><b>Cheer</b><span>60+ damage</span></li>
+          <li><b>Raid</b><span>300+ damage</span></li>
+        </ul>
+      </aside>
+      {% endif %}
+    </section>
+
+    {% if not overlay %}
+    <section class="control-grid">
+      <article class="panel summon-panel">
+        <div><p class="eyebrow">Encounter control</p><h2>Signal box</h2><p>Summon a fresh boss for the current stream—or prepare one now and it will board automatically when you go live. Starting another encounter safely retires the previous one.</p></div>
+        <form id="summon-form">
+          <fieldset class="boss-roster-field"><legend>Choose the next disruption</legend><div class="boss-roster" id="boss-roster"><span>Loading the boss roster…</span></div></fieldset>
+          <label><span>Boss name</span><input id="summon-name" maxlength="60" value="The Signal Gremlin"></label>
+          <label><span>Integrity</span><select id="summon-hp"><option value="" selected>Boss default</option><option value="1500">Quick · 1,500 HP</option><option value="2500">Standard · 2,500 HP</option><option value="5000">Epic · 5,000 HP</option><option value="10000">Multi-stream · 10,000 HP</option></select></label>
+          <button class="primary" type="submit">Summon boss</button>
+        </form>
+        <div class="control-buttons">
+          <button type="button" data-action="damage">Test hit · 250</button>
+          <button type="button" data-action="heal">Repair · 250</button>
+          <button type="button" data-action="pause">Pause</button>
+          <button type="button" data-action="resume">Resume</button>
+          <button type="button" class="danger" data-action="defeat">Emergency defeat</button>
+        </div>
+        <p id="control-status" class="control-status" role="status"></p>
+      </article>
+      <article class="panel leaders-panel">
+        <div><p class="eyebrow">Party manifest</p><h2>Top contributors</h2></div>
+        <ol id="leader-list"><li class="empty-row">No attacks recorded yet.</li></ol>
+      </article>
+      <article class="panel obs-panel">
+        <div><p class="eyebrow">OBS browser sources</p><h2>Battle overlays</h2><p>The full scene suits intermissions and dedicated battle moments. The compact widget sits in a gameplay corner. Both stay synchronized without this desk being open.</p></div>
+        <div class="overlay-source"><strong>Full-screen · 1920 × 1080</strong><div class="url-box"><code id="obs-full-url"></code><button id="copy-full-url" type="button">Copy</button></div><a id="open-full-overlay" target="_blank" rel="noopener">Open full preview ↗</a></div>
+        <div class="overlay-source"><strong>Compact corner · 640 × 360</strong><div class="url-box"><code id="obs-compact-url"></code><button id="copy-compact-url" type="button">Copy</button></div><a id="open-compact-overlay" target="_blank" rel="noopener">Open compact preview ↗</a></div>
+      </article>
+      <article class="panel event-panel">
+        <div><p class="eyebrow">Battle log</p><h2>Recent actions</h2></div>
+        <ol id="event-list"><li class="empty-row">The platform is quiet.</li></ol>
+      </article>
+    </section>
+    {% endif %}
+  </main>
+  <script>window.STREAM_BOSS_MODE={{ layout|tojson }};window.TWITCH_GROWTH={{ {"base": app_prefix, "csrf": csrf_token}|tojson }};</script>
+  <script src="{{ url_for('static', filename='security.js') }}?v=1"></script>
+  <script src="{{ url_for('static', filename='stream-boss/stream-boss.js') }}?v=20261021-1"></script>
+</body>
+</html>

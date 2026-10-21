@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-mode="{{ 'overlay' if overlay else 'desk' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>The Streamline · Twitch Growth</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='streamline.css') }}?v=20261015-2">
+</head>
+<body class="{{ 'overlay-mode' if overlay else 'desk-mode' }}">
+  {% if not overlay %}
+  <a class="skip-link" href="#journey-map">Skip to the journey map</a>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">SL</span><span><strong>The Streamline</strong><small>Twitch journey prototype</small></span></a>
+    <a class="back-link" href="{{ dashboard_url }}">← Dashboard2</a>
+  </header>
+  {% endif %}
+
+  <main>
+    <section class="map-panel" id="journey-map" aria-labelledby="journey-title">
+      <div class="route-heading">
+        <div><p class="eyebrow" id="service-name">Tonight's service</p><h1 id="journey-title">Preparing the route…</h1></div>
+        <div class="service-state"><i></i><span id="live-state">Connecting</span></div>
+      </div>
+      <div class="map-stage">
+        <svg id="route-map" viewBox="0 0 1600 820" role="img" aria-labelledby="map-title map-description">
+          <title id="map-title">The Streamline journey map</title>
+          <desc id="map-description">A chronological railway-style map of events from the selected Twitch stream.</desc>
+          <g id="route-layer"></g>
+          <g id="station-layer"></g>
+          <g id="train-layer"></g>
+        </svg>
+        <div class="map-empty" id="map-empty" hidden><strong>No journey recorded yet.</strong><span>The first stream event will open the line.</span></div>
+      </div>
+      <div class="now-board"><span>NOW APPROACHING</span><strong id="now-approaching">Waiting at the platform</strong><time id="now-time"></time></div>
+      <ol class="sr-only" id="station-list" aria-live="polite"></ol>
+    </section>
+
+    {% if not overlay %}
+    <section class="desk-layout">
+      <article class="control-panel">
+        <div><p class="eyebrow">Signalling desk</p><h2>Shape tonight's journey</h2><p>Add a memorable moment to the latest stream, or test the arrival animation without changing saved data.</p></div>
+        <form id="marker-form">
+          <label><span>Station name</span><input id="marker-label" maxlength="160" placeholder="Boss defeated" required></label>
+          <label><span>Station type</span><select id="marker-type"><option value="gameplay">Gameplay moment</option><option value="boss">Major victory</option><option value="funny">Funny moment</option><option value="break">Intermission</option><option value="note">Other marker</option></select></label>
+          <button type="submit" class="primary">Add live station</button>
+        </form>
+        <div class="demo-actions"><button type="button" id="demo-event">Preview an arrival</button><a id="demo-link" href="?demo=1">Load complete demo</a></div>
+        <p class="form-status" id="form-status" role="status"></p>
+      </article>
+      <article class="obs-panel">
+        <div><p class="eyebrow">OBS browser source</p><h2>Put it on stream</h2><p>Use a 1920 × 1080 browser source. The overlay has a transparent background and refreshes every five seconds.</p></div>
+        <label><span>Line colour</span><select id="line-colour"><option value="violet">Night violet</option><option value="amber">Dashboard amber</option><option value="cyan">Electric cyan</option><option value="green">Signal green</option><option value="pink">Hype pink</option></select></label>
+        <div class="url-box"><code id="obs-url"></code><button type="button" id="copy-url">Copy</button></div>
+        <a class="open-overlay" id="open-overlay" target="_blank" rel="noopener">Open overlay preview ↗</a>
+      </article>
+    </section>
+    {% endif %}
+  </main>
+  <script>window.STREAMLINE_MODE = {{ ('"overlay"' if overlay else '"desk"')|safe }};window.TWITCH_GROWTH={{ {"base": app_prefix, "csrf": csrf_token}|tojson }};</script>
+  <script src="{{ url_for('static', filename='security.js') }}?v=1"></script>
+  <script src="{{ url_for('static', filename='streamline.js') }}?v=20261021-1"></script>
+</body>
+</html>
