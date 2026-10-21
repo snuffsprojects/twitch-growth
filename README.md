@@ -1,5 +1,7 @@
 # Twitch Growth
 
+[![Tests](https://github.com/snuffsprojects/twitch-growth/actions/workflows/tests.yml/badge.svg)](https://github.com/snuffsprojects/twitch-growth/actions/workflows/tests.yml)
+
 Self-hosted Twitch stream analytics and interactive broadcast tools. Twitch Growth records your own channel data in SQLite, turns it into evidence-conscious coaching insights, recommends games from your Steam library, and provides OBS-ready Streamline and Stream Boss overlays.
 
 The application starts empty. It does not ship with demonstration analytics, credentials, or somebody else's channel history.
@@ -21,7 +23,7 @@ The application starts empty. It does not ship with demonstration analytics, cre
 Requirements: Docker with the Compose plugin and a Twitch Developer application.
 
 ```bash
-git clone https://github.com/your-account/twitch-growth.git
+git clone https://github.com/snuffsprojects/twitch-growth.git
 cd twitch-growth
 cp .env.example .env
 ```
